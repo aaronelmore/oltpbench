@@ -139,6 +139,8 @@ public class DBWorkload {
 		options.addOption("t", "timestamp", false, "Each result file is prepended with a timestamp for the beginning of the experiment");
 		options.addOption(null, "histograms", false, "Print txn histograms");
 		options.addOption(null, "dialects-export", true, "Export benchmark SQL to a dialects file");
+		//options.addOption("n","number",true, "The number of databases to test with");
+        options.addOption(null,"drop",true, "Drop the database after execution");
 
         // parse the command line arguments
         CommandLine argsLine = parser.parse(options, args);
@@ -201,6 +203,7 @@ public class DBWorkload {
 	        wrkld.setDBType(DatabaseType.get(xmlConfig.getString("dbtype")));
 	        wrkld.setDBDriver(xmlConfig.getString("driver"));
 	        wrkld.setDBConnection(xmlConfig.getString("DBUrl"));
+	        wrkld.setMetaDBConnection(xmlConfig.getString("MetaDBUrl"));
 	        wrkld.setDBName(xmlConfig.getString("DBName"));
 	        wrkld.setDBUsername(xmlConfig.getString("username"));
 	        wrkld.setDBPassword(xmlConfig.getString("password"));
@@ -211,6 +214,9 @@ public class DBWorkload {
 	        wrkld.setScaleFactor(xmlConfig.getDouble("scalefactor", 1.0));
 	        wrkld.setRecordAbortMessages(xmlConfig.getBoolean("recordabortmessages", false));
 	        
+	        if (argsLine.hasOption("n")) {
+	            wrkld.setNum_databases(Integer.parseInt(argsLine.getOptionValue("n")));
+	        }
 	        
 	        int size = xmlConfig.configurationsAt("/works/work").size();
 	        for (int i = 1; i < size + 1; i++) {
@@ -365,10 +371,8 @@ public class DBWorkload {
             throw new RuntimeException("No StatementDialects is available for " + bench);
         }
 
-        
         @Deprecated
         boolean verbose = argsLine.hasOption("v");
-
         // Create the Benchmark's Database
         if (isBooleanOptionSet(argsLine, "create")) {
             for (BenchmarkModule benchmark : benchList) {
@@ -384,7 +388,7 @@ public class DBWorkload {
 
         // Clear the Benchmark's Database
         if (isBooleanOptionSet(argsLine, "clear")) {
-                for (BenchmarkModule benchmark : benchList) {
+            for (BenchmarkModule benchmark : benchList) {
                 CREATE_LOG.info("Resetting " + benchmark.getBenchmarkName().toUpperCase() + " database...");
                 benchmark.clearDatabase();
                 CREATE_LOG.info("Finished!");
@@ -522,6 +526,15 @@ public class DBWorkload {
         } else {
             EXEC_LOG.info("Skipping benchmark workload execution");
         }
+
+        if (isBooleanOptionSet(argsLine, "drop")) {
+            for (BenchmarkModule benchmark : benchList) {
+                CREATE_LOG.info("Dropping " + benchmark.getBenchmarkName().toUpperCase() + " database...");
+                runDropper(benchmark, verbose);
+                CREATE_LOG.info("Finished!");
+                CREATE_LOG.info(SINGLE_LINE);
+            }
+        }
     }
 
 	/* buggy piece of shit of Java XPath implementation made me do it 
@@ -562,6 +575,12 @@ public class DBWorkload {
         bench.createDatabase();
     }
     
+    private static void runDropper(BenchmarkModule bench, boolean verbose) {
+        CREATE_LOG.debug(String.format("Dropping %s Database", bench));
+        bench.dropDatabase();
+    }
+
+
     private static void runLoader(BenchmarkModule bench, boolean verbose) {
         LOAD_LOG.debug(String.format("Loading %s Database", bench));
         bench.loadDatabase();

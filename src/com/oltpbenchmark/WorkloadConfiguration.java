@@ -45,13 +45,15 @@ public class WorkloadConfiguration {
     }
 
     private String db_connection;
-	private String db_name;
+    private String meta_db_connection;
+    private String db_name;
 	private String db_username;
 	private String db_password;
 	private String db_driver;	
 	private double scaleFactor = 1.0;
 	private int terminals;
 	private int numTxnTypes;
+	private int num_databases = 1;
     
 	private XMLConfiguration xmlConfig = null;
 
@@ -99,6 +101,14 @@ public class WorkloadConfiguration {
 		return db_connection;
 	}
 	
+    public String getMetaDBConnection() {
+        return meta_db_connection;
+    }
+
+    public void setMetaDBConnection(String meta_db_connection) {
+        this.meta_db_connection = meta_db_connection;
+    }
+
 	public void setDBName(String dbname) {
 		this.db_name = dbname;
 	}
@@ -247,5 +257,13 @@ public class WorkloadConfiguration {
             m.put(f.getName().toUpperCase(), obj);
         } // FOR
         return StringUtil.formatMaps(m);
+    }
+
+    public int getNum_databases() {
+        return num_databases;
+    }
+
+    public void setNum_databases(int num_databases) {
+        this.num_databases = num_databases;
     }
 }

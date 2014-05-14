@@ -101,12 +101,26 @@ public abstract class BenchmarkModule {
     // --------------------------------------------------------------------------
 
     /**
-     * 
+     *
      * @return
      * @throws SQLException
      */
     protected final Connection makeConnection() throws SQLException {
         Connection conn = DriverManager.getConnection(workConf.getDBConnection(),
+                workConf.getDBUsername(),
+                workConf.getDBPassword());
+        Catalog.setSeparator(conn);
+        this.last_connection = conn;
+        return (conn);
+    }
+
+    /**
+     * 
+     * @return
+     * @throws SQLException
+     */
+    protected final Connection makeMetaConnection() throws SQLException {
+        Connection conn = DriverManager.getConnection(workConf.getMetaDBConnection(),
                 workConf.getDBUsername(),
                 workConf.getDBPassword());
         Catalog.setSeparator(conn);
@@ -172,6 +186,10 @@ public abstract class BenchmarkModule {
         return (this.getDatabaseDDL(this.workConf.getDBType()));
     }
 
+    public String getDBCreationDDL(DatabaseType db_type, String db_name) {
+        return String.format("CREATE DATABASE %s", db_name);
+    }
+
     /**
      * Return the URL handle to the DDL used to load the benchmark's database
      * schema.
@@ -214,13 +232,31 @@ public abstract class BenchmarkModule {
 
     /**
      * Create the Benchmark Database
-     * This is the main method used to create all the database 
+     * This is the main method used to create all the database
      * objects (e.g., table, indexes, etc) needed for this benchmark 
      */
     public final void createDatabase() {
         try {
-            Connection conn = this.makeConnection();
-            this.createDatabase(this.workConf.getDBType(), conn);
+            Connection conn = this.makeMetaConnection();
+            String[] t = this.workConf.getDBConnection().split("/");
+            this.createDatabase(t[t.length-1], conn,true);
+            conn.close();
+            conn = this.makeConnection();
+            this.createTables(this.workConf.getDBType(), conn);
+            conn.close();
+        } catch (SQLException ex) {
+            throw new RuntimeException(String.format("Unexpected error when trying to create the %s database", this.benchmarkName), ex);
+        }
+    }
+
+    /**
+     * drop the Benchmark Database
+     */
+    public final void dropDatabase() {
+        try {
+            Connection conn = this.makeMetaConnection();
+            String[] t = this.workConf.getDBConnection().split("/");
+            this.dropDatabase(t[t.length-1], conn);
             conn.close();
         } catch (SQLException ex) {
             throw new RuntimeException(String.format("Unexpected error when trying to create the %s database", this.benchmarkName), ex);
@@ -232,7 +268,41 @@ public abstract class BenchmarkModule {
      * This is the main method used to create all the database 
      * objects (e.g., table, indexes, etc) needed for this benchmark 
      */
-    public final void createDatabase(DatabaseType dbType, Connection conn) throws SQLException {
+    public final void createDatabase(String dbName, Connection conn, boolean dropIfExists) throws SQLException {
+        try {
+            if (dropIfExists){
+                dropDatabase(dbName, conn);
+            }
+            String create = String.format("CREATE DATABASE %s",dbName);
+            LOG.info(String.format("Creating db: %s",create));
+            conn.createStatement().executeUpdate(create);
+        } catch (Exception ex) {
+            throw new RuntimeException(String.format("Unexpected error when trying to create the %s database", this.benchmarkName), ex);
+        }
+    }
+    
+    /**
+     * Create the Benchmark Database
+     * This is the main method used to create all the database 
+     * objects (e.g., table, indexes, etc) needed for this benchmark 
+     */
+    public final void dropDatabase(String dbName, Connection conn) throws SQLException {
+        try {
+            String drop = String.format("DROP DATABASE IF EXISTS %s",dbName);
+            LOG.info(String.format("dropping db: %s",drop));
+            conn.createStatement().executeUpdate(drop);
+        } catch (Exception ex) {
+            throw new RuntimeException(String.format("Unexpected error when trying to create the %s database", this.benchmarkName), ex);
+        }
+    }
+    
+    
+    /**
+     * Create the Benchmark Database
+     * This is the main method used to create all the database 
+     * objects (e.g., table, indexes, etc) needed for this benchmark 
+     */
+    public final void createTables(DatabaseType dbType, Connection conn) throws SQLException {
         try {
             URL ddl = this.getDatabaseDDL(dbType);
             assert(ddl != null) : "Failed to get DDL for " + this;
@@ -291,6 +361,7 @@ public abstract class BenchmarkModule {
                 }
             }
         } catch (SQLException ex) {
+            LOG.error(ex.getNextException());
             throw new RuntimeException(String.format("Unexpected error when trying to load the %s database", this.benchmarkName), ex);
         }
     }

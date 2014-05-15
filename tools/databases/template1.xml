@@ -11,10 +11,10 @@
     <isolation>TRANSACTION_READ_COMMITTED</isolation>
     
     <!-- Scalefactor in YCSB is *1000 the number of rows in the USERTABLE-->
-    <scalefactor>1200</scalefactor>
+    <scalefactor>120</scalefactor>
     
     <!-- The workload -->
-    <terminals>50</terminals>
+    <terminals>5</terminals>
     <works>
         <work>
           <time>60</time>

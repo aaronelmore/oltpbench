@@ -63,7 +63,11 @@ public class ResultUploader {
         username = expConf.getString("username");
         password = expConf.getString("password");
         benchType = argsLine.getOptionValue("b");
-        windowSize = Integer.parseInt(argsLine.getOptionValue("s"));
+        try {
+            windowSize = Integer.parseInt(argsLine.getOptionValue("s"));
+        } catch (NumberFormatException ex) {
+            LOG.info("s param not set or not integer");
+        }
         uploadCode = expConf.getString("uploadCode");
         uploadUrl = expConf.getString("uploadUrl");
     }

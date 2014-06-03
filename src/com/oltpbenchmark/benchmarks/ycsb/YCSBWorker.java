@@ -4,7 +4,9 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
+import com.mysql.jdbc.log.Log;
 import com.oltpbenchmark.api.BenchmarkModule;
 import com.oltpbenchmark.api.Procedure;
 import com.oltpbenchmark.api.Procedure.UserAbortException;
@@ -17,6 +19,8 @@ import com.oltpbenchmark.benchmarks.ycsb.procedures.ReadRecord;
 import com.oltpbenchmark.benchmarks.ycsb.procedures.ScanRecord;
 import com.oltpbenchmark.benchmarks.ycsb.procedures.UpdateRecord;
 import com.oltpbenchmark.distributions.CounterGenerator;
+import com.oltpbenchmark.distributions.IntegerGenerator;
+import com.oltpbenchmark.distributions.UniformGenerator;
 import com.oltpbenchmark.distributions.ZipfianGenerator;
 import com.oltpbenchmark.types.TransactionStatus;
 import com.oltpbenchmark.util.TextGenerator;
@@ -26,14 +30,17 @@ public class YCSBWorker extends Worker {
     private ZipfianGenerator readRecord;
     private static CounterGenerator insertRecord;
     private ZipfianGenerator randScan;
-
+    private UniformGenerator onOff;
+    private boolean stateOn = true;
+    private int onSwitch = 101;
+    private int coinFlip = 0;
     private final Map<Integer, String> m = new HashMap<Integer, String>();
     
     public YCSBWorker(int id, BenchmarkModule benchmarkModule, int init_record_count) {
         super(benchmarkModule, id);
         readRecord = new ZipfianGenerator(init_record_count);// pool for read keys
         randScan = new ZipfianGenerator(YCSBConstants.MAX_SCAN);
-        
+        onOff = new UniformGenerator(new Random(), 0, 100);
         synchronized (YCSBWorker.class) {
             // We must know where to start inserting
             if (insertRecord == null) {
@@ -45,21 +52,34 @@ public class YCSBWorker extends Worker {
     @Override
     protected TransactionStatus executeWork(TransactionType nextTrans) throws UserAbortException, SQLException {
         Class<? extends Procedure> procClass = nextTrans.getProcedureClass();
+        /*
         
-        if (procClass.equals(DeleteRecord.class)) {
-            deleteRecord();
-        } else if (procClass.equals(InsertRecord.class)) {
-            insertRecord();
-        } else if (procClass.equals(ReadModifyWriteRecord.class)) {
-            readModifyWriteRecord();
-        } else if (procClass.equals(ReadRecord.class)) {
-            readRecord();
-        } else if (procClass.equals(ScanRecord.class)) {
-            scanRecord();
-        } else if (procClass.equals(UpdateRecord.class)) {
-            updateRecord();
+        coinFlip = onOff.nextInt();
+        System.out.println(String.format("onSwitch:%s cointFlip:%s  stateOn:%s  swapping:%s",
+                onSwitch, coinFlip, stateOn, (coinFlip> onSwitch)));
+        if (coinFlip> onSwitch){
+            System.out.println("Switch from : " + stateOn);
+            stateOn = !stateOn;            
         }
-        conn.commit();
+        */
+        if (stateOn){        
+            if (procClass.equals(DeleteRecord.class)) {
+                deleteRecord();
+            } else if (procClass.equals(InsertRecord.class)) {
+                insertRecord();
+            } else if (procClass.equals(ReadModifyWriteRecord.class)) {
+                readModifyWriteRecord();
+            } else if (procClass.equals(ReadRecord.class)) {
+                readRecord();
+            } else if (procClass.equals(ScanRecord.class)) {
+                scanRecord();
+            } else if (procClass.equals(UpdateRecord.class)) {
+                updateRecord();
+            }
+            conn.commit();
+        } else {
+            return (TransactionStatus.SUCCESS_PASS);
+        }
         return (TransactionStatus.SUCCESS);
     }
 

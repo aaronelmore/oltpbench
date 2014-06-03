@@ -91,7 +91,7 @@ public class ScriptRunner {
 	 * @param reader
 	 *            - the source of the script
 	 */
-	public void runScript(URL resource) throws IOException, SQLException {
+	public void runScript(URL resource, String replaceName) throws IOException, SQLException {
 		Reader reader = new InputStreamReader(resource.openStream());
 		try {
 			boolean originalAutoCommit = connection.getAutoCommit();
@@ -99,7 +99,7 @@ public class ScriptRunner {
 				if (originalAutoCommit != this.autoCommit) {
 					connection.setAutoCommit(this.autoCommit);
 				}
-				runScript(connection, reader);
+				runScript(connection, reader, replaceName);
 			} finally {
 				connection.setAutoCommit(originalAutoCommit);
 			}
@@ -125,18 +125,23 @@ public class ScriptRunner {
 	 * @throws IOException
 	 *             if there is an error reading from the Reader
 	 */
-	private void runScript(Connection conn, Reader reader) throws IOException,
+	private void runScript(Connection conn, Reader reader, String replaceName) throws IOException,
 			SQLException {
 		StringBuffer command = null;
 		try {
 			LineNumberReader lineReader = new LineNumberReader(reader);
 			String line = null;
 			while ((line = lineReader.readLine()) != null) {
+                if (replaceName != null && line.indexOf("%")>-1) {
+                    line = String.format(line, replaceName);
+                    LOG.info("Updated line : " + line);
+                }
 			    if (LOG.isDebugEnabled()) LOG.debug(line);
 				if (command == null) {
 					command = new StringBuffer();
 				}
 				String trimmedLine = line.trim();
+
 				if (trimmedLine.startsWith("--")) {
 					LOG.debug(trimmedLine);
 				} else if (trimmedLine.length() < 1
@@ -149,6 +154,7 @@ public class ScriptRunner {
 						&& trimmedLine.endsWith(getDelimiter())
 						|| fullLineDelimiter
 						&& trimmedLine.equals(getDelimiter())) {
+
 					command.append(line.substring(0, line
 							.lastIndexOf(getDelimiter())));
 					command.append(" ");

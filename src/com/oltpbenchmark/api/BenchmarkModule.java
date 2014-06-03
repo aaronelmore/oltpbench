@@ -33,6 +33,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import org.apache.commons.lang.NotImplementedException;
+import org.apache.commons.lang.RandomStringUtils;
 import org.apache.log4j.Logger;
 
 import com.oltpbenchmark.WorkloadConfiguration;
@@ -211,6 +213,28 @@ public abstract class BenchmarkModule {
         LOG.error("Failed to find DDL file for " + this.benchmarkName);
         return null;
     }
+    
+    /**
+     * Return the URL handle to the DDL used to load the benchmark's database
+     * schema.
+     * @param conn 
+     * @throws SQLException 
+     */
+    public URL getMultiTableDDL(DatabaseType db_type) {
+        String ddlNames[] = {
+                this.benchmarkName + "-" + (db_type != null ? db_type.name().toLowerCase() : "") + "-multi-ddl.sql",
+                this.benchmarkName + "-multi-ddl.sql",
+        };
+
+        for (String ddlName : ddlNames) {
+            if (ddlName == null) continue;
+            URL ddlURL = this.getClass().getResource(ddlName);
+            if (ddlURL != null) return ddlURL;
+        } // FOR
+        System.out.println(db_type + " ::: " + ddlNames[0]+" :or: "+ddlNames[1]);
+        LOG.error("Failed to find DDL file for " + this.benchmarkName);
+        return null;
+    }
 
     /**
      * Return the File handle to the SQL Dialect XML file
@@ -242,7 +266,7 @@ public abstract class BenchmarkModule {
             this.createDatabase(t[t.length-1], conn,true);
             conn.close();
             conn = this.makeConnection();
-            this.createTables(this.workConf.getDBType(), conn);
+            this.createTables(this.workConf.getDBType(), conn, false);
             conn.close();
         } catch (SQLException ex) {
             throw new RuntimeException(String.format("Unexpected error when trying to create the %s database", this.benchmarkName), ex);
@@ -302,13 +326,34 @@ public abstract class BenchmarkModule {
      * This is the main method used to create all the database 
      * objects (e.g., table, indexes, etc) needed for this benchmark 
      */
-    public final void createTables(DatabaseType dbType, Connection conn) throws SQLException {
+    public final void createTables(DatabaseType dbType, Connection conn, boolean forceSingle) throws SQLException {
         try {
-            URL ddl = this.getDatabaseDDL(dbType);
-            assert(ddl != null) : "Failed to get DDL for " + this;
-            ScriptRunner runner = new ScriptRunner(conn, true, true);
-            if (LOG.isDebugEnabled()) LOG.debug("Executing script '" + ddl + "'");
-            runner.runScript(ddl);
+            if (forceSingle || (this.workConf.getActive_tables() == 1 && this.workConf.getNum_tables() == 1)){
+                LOG.info("Creating single table");
+                URL ddl = this.getDatabaseDDL(dbType);
+                assert(ddl != null) : "Failed to get DDL for " + this;
+                ScriptRunner runner = new ScriptRunner(conn, true, true);
+                if (LOG.isDebugEnabled()) LOG.debug("Executing script '" + ddl + "'");
+                runner.runScript(ddl, "USERTABLE");
+            } else if (this.benchmarkName.equals("ycsb")){
+                if (this.workConf.getActive_tables() > 1){
+                    throw new NotImplementedException("Only single active table currently supported");
+                }
+                LOG.info("Creating Multi table");
+                URL ddl = this.getMultiTableDDL(dbType);
+                assert(ddl != null) : "Failed to get DDL for " + this;
+                ScriptRunner runner = new ScriptRunner(conn, true, true);
+                if (LOG.isDebugEnabled()) LOG.debug("Executing script '" + ddl + "'");
+                runner.runScript(ddl, "USERTABLE");
+                
+                for (int i = 1; i < this.workConf.getNum_tables(); i++){                    
+                    String tableName = String.format("USERTABLE-%s", RandomStringUtils.randomAlphanumeric(8));
+                    runner.runScript(ddl, tableName);
+                }
+            } else {
+                throw new NotImplementedException("Mulitple tables not supported for any benchmark other than YCSB. Current benchmark : " + this.benchmarkName);
+            }
+                
         } catch (Exception ex) {
             throw new RuntimeException(String.format("Unexpected error when trying to create the %s database", this.benchmarkName), ex);
         }
@@ -322,7 +367,7 @@ public abstract class BenchmarkModule {
             Connection conn = this.makeConnection();
             ScriptRunner runner = new ScriptRunner(conn, true, true);
             File scriptFile= new File(script);
-            runner.runScript(scriptFile.toURI().toURL());
+            runner.runScript(scriptFile.toURI().toURL(), null);
             conn.close();
         } catch (SQLException ex) {
             throw new RuntimeException(String.format("Unexpected error when trying to run: %s", script), ex);

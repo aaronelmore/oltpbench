@@ -255,6 +255,10 @@ public abstract class Worker implements Runnable {
         	                if (LOG.isDebugEnabled()) 
                                 LOG.debug("Executed a new invocation of " + next);
         	                break;
+        	            case SUCCESS_PASS:
+        	                if (LOG.isDebugEnabled()) 
+                                LOG.debug("Passed on " + next);
+                            break;
         	            case RETRY_DIFFERENT:
         	                this.txnRetry.put(next);
         	                next = null;

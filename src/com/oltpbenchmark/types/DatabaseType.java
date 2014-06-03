@@ -33,9 +33,7 @@ public enum DatabaseType {
     }
     
     public static DatabaseType get(String name) {
-        System.out.println(name);
         DatabaseType ret = DatabaseType.name_lookup.get(name.toUpperCase());
-        System.out.println(ret);
         return (ret);
     }
 }

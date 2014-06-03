@@ -54,6 +54,8 @@ public class WorkloadConfiguration {
 	private int terminals;
 	private int numTxnTypes;
 	private int num_databases = 1;
+    private int num_tables = 1;
+    private int active_tables = 1;
     
 	private XMLConfiguration xmlConfig = null;
 
@@ -265,5 +267,21 @@ public class WorkloadConfiguration {
 
     public void setNum_databases(int num_databases) {
         this.num_databases = num_databases;
+    }
+
+    public int getNum_tables() {
+        return num_tables;
+    }
+
+    public void setNum_tables(int num_tables) {
+        this.num_tables = num_tables;
+    }
+
+    public int getActive_tables() {
+        return active_tables;
+    }
+
+    public void setActive_tables(int active_tables) {
+        this.active_tables = active_tables;
     }
 }

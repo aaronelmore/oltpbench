@@ -140,7 +140,7 @@ public final class Catalog {
      */
     protected void init() throws SQLException {
         // Load the database's DDL
-        this.benchmark.createTables(DB_TYPE, this.conn);
+        this.benchmark.createTables(DB_TYPE, this.conn, true);
         
         // TableName -> ColumnName -> <FkeyTable, FKeyColumn>
         Map<String, Map<String, Pair<String, String>>> foreignKeys = new HashMap<String, Map<String,Pair<String,String>>>();

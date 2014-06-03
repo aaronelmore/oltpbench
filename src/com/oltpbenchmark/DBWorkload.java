@@ -140,6 +140,9 @@ public class DBWorkload {
 		options.addOption(null, "histograms", false, "Print txn histograms");
 		options.addOption(null, "dialects-export", true, "Export benchmark SQL to a dialects file");
 		//options.addOption("n","number",true, "The number of databases to test with");
+		options.addOption("nt", "numtables", true, "Number of total tables to run");
+		options.addOption("at", "activetables", true, "Number of active tables to run");
+        
         options.addOption(null,"drop",true, "Drop the database after execution");
 
         // parse the command line arguments
@@ -218,6 +221,14 @@ public class DBWorkload {
 	            wrkld.setNum_databases(Integer.parseInt(argsLine.getOptionValue("n")));
 	        }
 	        
+           if (argsLine.hasOption("at")) {
+                wrkld.setActive_tables(Integer.parseInt(argsLine.getOptionValue("at")));
+            }
+           
+            if (argsLine.hasOption("nt")) {
+                wrkld.setNum_tables(Integer.parseInt(argsLine.getOptionValue("nt")));
+            }
+        
 	        int size = xmlConfig.configurationsAt("/works/work").size();
 	        for (int i = 1; i < size + 1; i++) {
 	            SubnodeConfiguration work = xmlConfig.configurationAt("works/work[" + i + "]");

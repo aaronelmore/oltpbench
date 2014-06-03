@@ -64,16 +64,22 @@ public class YCSBWorker extends Worker {
         */
         if (stateOn){        
             if (procClass.equals(DeleteRecord.class)) {
+                System.out.println("Delete");
                 deleteRecord();
             } else if (procClass.equals(InsertRecord.class)) {
+                System.out.println("Insert");
                 insertRecord();
             } else if (procClass.equals(ReadModifyWriteRecord.class)) {
+                System.out.println("RMW");
                 readModifyWriteRecord();
             } else if (procClass.equals(ReadRecord.class)) {
+                System.out.println("Read");
                 readRecord();
             } else if (procClass.equals(ScanRecord.class)) {
+                System.out.println("SCan");
                 scanRecord();
             } else if (procClass.equals(UpdateRecord.class)) {
+                System.out.println("Update");
                 updateRecord();
             }
             conn.commit();
@@ -88,7 +94,7 @@ public class YCSBWorker extends Worker {
         assert (proc != null);
         int keyname = readRecord.nextInt();
         Map<Integer, String> values = buildValues(10);
-        proc.run(conn, keyname, values);
+        proc.run(conn, "USERTABLE", keyname, values);
     }
 
     private void scanRecord() throws SQLException {
@@ -103,7 +109,7 @@ public class YCSBWorker extends Worker {
         ReadRecord proc = this.getProcedure(ReadRecord.class);
         assert (proc != null);
         int keyname = readRecord.nextInt();
-        proc.run(conn, keyname, new HashMap<Integer, String>());
+        proc.run(conn, "USERTABLE", keyname, new HashMap<Integer, String>());
     }
 
     private void readModifyWriteRecord() throws SQLException {
@@ -126,7 +132,7 @@ public class YCSBWorker extends Worker {
         int keyname = insertRecord.nextInt();
         // System.out.println("[Thread " + this.id+"] insert this:  "+ keyname);
         Map<Integer, String> values = buildValues(10);
-        proc.run(conn, keyname, values);
+        proc.run(conn, "USERTABLE", keyname, values);
     }
 
     private void deleteRecord() throws SQLException {

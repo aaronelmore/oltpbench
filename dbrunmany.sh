@@ -6,6 +6,9 @@ ccmd='./oltpbenchmark --b ycsb -c config/pg_ycsb_config.xml --create=true --load
 RUNS=( 1 10 100 1000 5000 10000 20000 50000 100000 200000 400000 1000000)
 
 echo "running"
+runcmd="python tools/databases/multi.py -n 0 -c"
+$runcmd
+
 for i in "${RUNS[@]}"
 do
    runcmd="$ccmd  -o md$i"

@@ -7,6 +7,8 @@ import re
 import logging
 import time
 import shutil
+import argparse
+
 
 logger = logging.getLogger('oltp')
 logger.setLevel(logging.INFO)
@@ -15,7 +17,7 @@ fh = logging.FileHandler('ilandlord.log')
 fh.setLevel(logging.ERROR)
 # create console handler with a lower log level
 ch = logging.StreamHandler()
-ch.setLevel(logging.ERROR)
+ch.setLevel(logging.INFO)
 # create formatter and add it to the handlers
 formatter = logging.Formatter('%(asctime)s  - %(levelname)s : %(message)s')
 fh.setFormatter(formatter)
@@ -160,6 +162,24 @@ def run():
         run_commands([genLoadCommand(c) for c in new_configs])
         #run all dbs
         run_commands([genRunCommand(c) for c in configs])
-        
+    
+def createDbs(args):
+    logger.info("num %s"% args.num)
+    db_names =  [genRandomName('usertable%s',6) for x in range(args.num)]
+    CREATE = "CREATE DATABASE %s"
+    CREATE_TABLE = "CREATE TABLE USERTABLE ( YCSB_KEY INT PRIMARY KEY,    FIELD1 VARCHAR(100),   	FIELD2 VARCHAR(100),  	FIELD3 VARCHAR(100),   	FIELD4 VARCHAR(100),  	FIELD5 VARCHAR(100),   	FIELD6 VARCHAR(100),  	FIELD7 VARCHAR(100),   	FIELD8 VARCHAR(100),  	FIELD9 VARCHAR(100),   	FIELD10 VARCHAR(100));"
+    for db in db_names:
+        create = CREATE % db
+        cmd = "psql -U %s  postgres -w -c \"%s\"" % ("dbv", create)
+        localCmdOutput(cmd)
+        cmd = "psql -U %s  %s -w -c \"%s\"" % ("dbv", db, CREATE_TABLE)
+        localCmdOutput(cmd)
+          
 if __name__ == "__main__":
-    run()
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('-n',dest="num", type=int, help='Number of databases to create')
+    parser.add_argument('-c',dest="clean", action='store_true', help='Drop')
+    args = parser.parse_args()
+    if args.clean:
+        cleanDBs('usertable')
+    createDbs(args)
